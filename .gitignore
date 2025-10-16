@@ -1,0 +1,141 @@
+# ---------------------------
+# Python & Packaging
+# ---------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+*.dll
+
+# Build artifacts
+build/
+dist/
+.eggs/
+*.egg-info/
+pip-wheel-metadata/
+*.spec
+
+# ---------------------------
+# Environments
+# ---------------------------
+.venv/
+venv/
+env/
+ENV/
+.conda/
+.venv*/
+# Pyenv
+.python-version
+
+# ---------------------------
+# Jupyter & Notebooks
+# ---------------------------
+.ipynb_checkpoints/
+# (Optional) ignore notebook outputs if you export often
+*.nbconvert.ipynb
+
+# ---------------------------
+# Testing, Coverage, Caches
+# ---------------------------
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache/
+
+# Type checking / lint caches
+.mypy_cache/
+.pytype/
+.pyre/
+.ruff_cache/
+.dmypy.json
+
+# ---------------------------
+# Logs & Local State
+# ---------------------------
+logs/
+*.log
+
+# ---------------------------
+# IDE / Editor / OS
+# ---------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ---------------------------
+# Data, Models, Outputs
+# (Keep directories; commit small samples via .gitkeep)
+# ---------------------------
+data/
+!data/.gitkeep
+
+datasets/
+!datasets/.gitkeep
+
+outputs/
+!outputs/.gitkeep
+
+models/
+!models/.gitkeep
+
+checkpoints/
+!checkpoints/.gitkeep
+
+artifacts/
+!artifacts/.gitkeep
+
+# Common large/binary ML files (if they sneak outside the folders above)
+*.ckpt
+*.pt
+*.pth
+*.h5
+*.onnx
+*.tflite
+*.pb
+*.joblib
+*.pkl
+*.sav
+*.npz
+*.npy
+
+# ---------------------------
+# Experiment & Tracking Tools
+# ---------------------------
+wandb/
+mlruns/
+lightning_logs/
+runs/
+tensorboard/
+ray_results/
+
+# DVC (commit .dvc files; ignore caches/tmp)
+.dvc/cache/
+.dvc/tmp/
+
+# ---------------------------
+# Credentials & Secrets
+# ---------------------------
+.env
+.env.*
+*.env
+secrets/
+credentials/
+*.key
+*.pem
+*.crt
+*.p12
+*.jks
+*.keystore
+*.credentials
+
+# ---------------------------
+# Containers (optional)
+# ---------------------------
+docker-compose.override.yml
