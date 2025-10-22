@@ -81,7 +81,7 @@ def main():
         estimator=pipe,
         param_grid=param_grid,
         scoring={"auc": "roc_auc", "tpr1": tpr1_scorer},
-        refit="tpr1",
+        refit="auc",
         cv=cv,
         n_jobs=-1,
         verbose=1,
