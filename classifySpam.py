@@ -1,69 +1,67 @@
-# -*- coding: utf-8 -*-
-"""
-Demo of 10-fold cross-validation using Gaussian naive Bayes on spam data
-
-@author: Kevin S. Xu
-"""
+# classifySpam.py
 
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.naive_bayes import GaussianNB
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import roc_auc_score
+from sklearn.experimental import enable_iterative_imputer  # <-- this line is required
+from sklearn.impute import IterativeImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import StackingClassifier
+from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
 
-def aucCV(features,labels):
-    # model = GaussianNB()
-    model = make_pipeline(SimpleImputer(missing_values=-1, strategy='mean'),
-                          GaussianNB())
-    scores = cross_val_score(model,features,labels,cv=10,scoring='roc_auc')
-    
-    return scores
+def predictTest(trainFeatures, trainLabels, testFeatures):
+    """
+    Predict probabilities on testFeatures using a stacked model:
+    Base learners: XGBoost + Logistic Regression
+    Final estimator: Logistic Regression
+    Fixed XGBoost parameters as specified.
+    """
+    random_state = 42
 
-def predictTest(trainFeatures,trainLabels,testFeatures):
-    # model = GaussianNB()
-    model = make_pipeline(SimpleImputer(missing_values=-1, strategy='mean'),
-                          GaussianNB())
-    model.fit(trainFeatures,trainLabels)
-    
-    # Use predict_proba() rather than predict() to use probabilities rather
-    # than estimated class labels as outputs
-    testOutputs = model.predict_proba(testFeatures)[:,1]
-    
-    return testOutputs
-    
-# Run this code only if being used as a script, not being imported
-if __name__ == "__main__":
-    data = np.loadtxt('spamTrain1.csv',delimiter=',')
-    # Separate labels (last column)
-    features = data[:,:-1]
-    labels = data[:,-1]
-    
-    # Evaluating classifier accuracy using 10-fold cross-validation
-    print("10-fold cross-validation mean AUC: ",
-          np.mean(aucCV(features,labels)))
-    
-    # Arbitrarily choose all odd samples as train set and all even as test set
-    # then compute test set AUC for model trained only on fixed train set
-    trainFeatures = features[0::2,:]
-    trainLabels = labels[0::2]
-    testFeatures = features[1::2,:]
-    testLabels = labels[1::2]
-    testOutputs = predictTest(trainFeatures,trainLabels,testFeatures)
-    print("Test set AUC: ", roc_auc_score(testLabels,testOutputs))
-    
-    # Examine outputs compared to labels
-    sortIndex = np.argsort(testLabels)
-    nTestExamples = testLabels.size
-    plt.subplot(2,1,1)
-    plt.plot(np.arange(nTestExamples),testLabels[sortIndex],'b.')
-    plt.xlabel('Sorted example number')
-    plt.ylabel('Target')
-    plt.subplot(2,1,2)
-    plt.plot(np.arange(nTestExamples),testOutputs[sortIndex],'r.')
-    plt.xlabel('Sorted example number')
-    plt.ylabel('Output (predicted target)')
-    plt.tight_layout()
-    plt.show()
-    
+    # ---- Impute missing values ----
+    imputer = IterativeImputer(max_iter=10, random_state=random_state)
+    X_train_imputed = imputer.fit_transform(trainFeatures)
+    X_test_imputed = imputer.transform(testFeatures)
+
+    # ---- Standard scaling ----
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train_imputed)
+    X_test_scaled = scaler.transform(X_test_imputed)
+
+    # ---- Fixed XGBoost parameters ----
+    xgb = XGBClassifier(
+        n_estimators=400,
+        max_depth=3,
+        learning_rate=0.05,
+        subsample=1.0,
+        colsample_bytree=0.8,
+        min_child_weight=1,
+        gamma=0,
+        scale_pos_weight=1.415,
+        objective="binary:logistic",
+        eval_metric="logloss",
+        random_state=random_state,
+        n_jobs=-1
+    )
+
+    # ---- Logistic Regression base learner ----
+    lr_base = LogisticRegression(solver="liblinear", random_state=random_state)
+
+    # ---- Stacking classifier ----
+    stack = StackingClassifier(
+        estimators=[
+            ("xgb", xgb),
+            ("lr", lr_base)
+        ],
+        final_estimator=LogisticRegression(solver="liblinear", random_state=random_state),
+        cv=5,
+        stack_method="predict_proba",
+        n_jobs=-1
+    )
+
+    # ---- Fit stacking model ----
+    stack.fit(X_train_scaled, trainLabels)
+
+    # ---- Predict probabilities for test set ----
+    test_proba = stack.predict_proba(X_test_scaled)[:, 1]
+
+    return test_proba
