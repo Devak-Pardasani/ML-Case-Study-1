@@ -4,10 +4,10 @@ import numpy as np
 from sklearn.experimental import enable_iterative_imputer  # <-- this line is required
 from sklearn.impute import IterativeImputer
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import StackingClassifier
 from sklearn.linear_model import LogisticRegression
 from xgboost import XGBClassifier
-
+from sklearn.ensemble import StackingClassifier, RandomForestClassifier
+from sklearn.svm import SVC
 def predictTest(trainFeatures, trainLabels, testFeatures):
     """
     Predict probabilities on testFeatures using a stacked model:
@@ -15,12 +15,13 @@ def predictTest(trainFeatures, trainLabels, testFeatures):
     Final estimator: Logistic Regression
     Fixed XGBoost parameters as specified.
     """
-    random_state = 42
 
     # ---- Impute missing values ----
-    imputer = IterativeImputer(max_iter=10, random_state=random_state)
-    X_train_imputed = imputer.fit_transform(trainFeatures)
-    X_test_imputed = imputer.transform(testFeatures)
+    trainFeatures[trainFeatures==-1]=np.nan
+    testFeatures[testFeatures==-1]=np.nan
+    #imputer = IterativeImputer(max_iter=10, random_state=random_state)
+    X_train_imputed = trainFeatures
+    X_test_imputed = testFeatures
 
     # ---- Standard scaling ----
     scaler = StandardScaler()
@@ -36,28 +37,16 @@ def predictTest(trainFeatures, trainLabels, testFeatures):
         colsample_bytree=0.8,
         min_child_weight=1,
         gamma=0,
-        scale_pos_weight=1.415,
         objective="binary:logistic",
         eval_metric="logloss",
-        random_state=random_state,
         n_jobs=-1
     )
 
     # ---- Logistic Regression base learner ----
-    lr_base = LogisticRegression(solver="liblinear", random_state=random_state)
+    #lr_base = LogisticRegression(solver="liblinear", random_state=random_state)
 
     # ---- Stacking classifier ----
-    stack = StackingClassifier(
-        estimators=[
-            ("xgb", xgb),
-            ("lr", lr_base)
-        ],
-        final_estimator=LogisticRegression(solver="liblinear", random_state=random_state),
-        cv=5,
-        stack_method="predict_proba",
-        n_jobs=-1
-    )
-
+    stack = xgb
     # ---- Fit stacking model ----
     stack.fit(X_train_scaled, trainLabels)
 
